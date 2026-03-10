@@ -1,0 +1,9 @@
+[project]
+name = "explicit-arbitration"
+version = "0.1.0"
+description = "Decomposition and arbitration with observability using Hydradecide and ReasonTree."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "any-llm-sdk[openai]>=0.7.0; python_version >= '3.11'",
+]
