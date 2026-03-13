@@ -3,7 +3,23 @@ name = "explicit-arbitration"
 version = "0.1.0"
 description = "Decomposition and arbitration with observability using Hydradecide and ReasonTree."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
-  "any-llm-sdk[openai]>=0.7.0; python_version >= '3.11'",
+  "any-llm-sdk[openai]>=0.7.0",
 ]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.5.0",
+]
+
+[tool.uv]
+managed = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
