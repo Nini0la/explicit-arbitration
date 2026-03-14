@@ -1,15 +1,29 @@
 # AGENTS.md - Explicit Arbitration Project Context
 
 ## Project Purpose
-Explicit Arbitration is a post-generation decision layer for LLM and agent workflows.
+Explicit Arbitration is a structured execution layer for LLM tasks.
 
-It sits between an upstream producer (LLM, agent, tool, or workflow step) and a downstream destination (user response, tool call, memory write, API action, or next agent).
+It routes a task through explicit multi-step reasoning so that output production is observable, decomposable, and refinable.
 
-Its job is to decide whether a candidate output should:
-- ALLOW
-- REVISE
-- BLOCK
-- ESCALATE
+The current implementation focuses on:
+- ReasonTree for ordered task decomposition
+- HydraDecide for sequential refinement
+- full trace emission across execution
+
+The goal is to improve reliability for multi-step tasks while keeping internal reasoning externally inspectable.
+
+---
+
+---
+
+## Current Priority
+Build one end-to-end runnable arbitration path in terminal first.
+
+Do not optimize architecture before:
+- one ReasonTree decomposition works
+- one HydraDecide refinement chain works
+- one full terminal run returns final output
+- one trace is emitted
 
 ---
 
@@ -44,13 +58,13 @@ ReasonTree is conditional.
 ---
 
 ## Decision Flow
-1. Candidate output is produced
-2. Arbitration gate evaluates decomposition need
-3. If useful, invoke ReasonTree
-4. HydraDecide arbitrates:
-   - full candidate directly, or
-   - node outputs sequentially
-5. Return typed verdict
+1. Receive task
+2. Build ordered ReasonTree nodes when decomposition is needed for the task
+3. Run HydraDecide sequentially across node prompts or directly on the task when decomposition is skipped
+4. Pass node outputs forward when dependencies exist
+5. Return the final output from the last refinement step
+
+---
 
 ---
 
@@ -58,11 +72,11 @@ ReasonTree is conditional.
 
 ### HydraDecide
 Responsibilities:
-- multi-pass arbitration
+- multi-pass refinement
 - contradiction detection
 - correction proposal
-- confidence estimation
-- final release verdict
+- intermediate output logging
+- final node output generation
 
 ### ReasonTree
 Responsibilities:
@@ -75,10 +89,9 @@ Responsibilities:
 
 ## Implementation Rules
 - Prefer typed dataclasses or Pydantic models
-- Separate gating from arbitration
-- Separate decomposition from verdict aggregation
-- Keep verdicts explicit
+- Separate decomposition from refinement
 - Keep traces first-class
+- Prefer minimal runnable paths before expanding abstractions
 
 ---
 
@@ -91,6 +104,6 @@ Responsibilities:
 
 ## Design Bias
 - HydraDecide always runs
-- ReasonTree only when decomposition helps
+- ReasonTree is the default for clearly multi-step demo tasks
 - Components must remain provider-agnostic
 - Avoid tight coupling to demo logic
