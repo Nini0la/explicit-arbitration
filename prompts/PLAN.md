@@ -239,6 +239,18 @@ The minimal demo is successful if:
 
 ## Non-Goals for This Iteration
 
+## V1 Implementation Plan (Current)
+
+1. Implement deterministic scorer (`scoring_rules.py`) from `SPEC.md` formula.
+2. Add deterministic sample sessions + expected ground-truth scores (`sample_sessions.py`).
+3. Implement deterministic ReasonTree decomposition (`reasontree.py`).
+4. Implement stub-compatible HydraDecide multi-pass runner (`hydradecide.py`).
+5. Implement minimal trace entry creation and append helpers (`traces.py`).
+6. Implement arbitrated orchestrator flow with explicit final score parsing (`orchestrator.py`).
+7. Implement baseline direct runner with no ReasonTree/Hydra coupling (`baseline_runner.py`).
+8. Implement terminal runnable comparison script (`arbitrated_runner.py`).
+9. Run `uv run pytest` progressively and fix failures until passing.
+
 These are explicitly out of scope unless time remains:
 
 - full conversational store agent
