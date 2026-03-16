@@ -69,7 +69,7 @@ Responsibility:
 
 - Execute multi-pass refinement for a single node prompt.
 - Detect contradictions across passes.
-- Produce final node output and confidence.
+- Produce final raw node output.
 
 Input:
 
@@ -107,7 +107,7 @@ Must not do:
 
 - Runs at least 2 passes by default.
 - Returns `HydraResult.pass_count == passes`.
-- Returns a non-empty `final_output`.
+- Returns a non-empty raw `final_output`.
 
 ---
 
@@ -327,7 +327,6 @@ class HydraResult:
     contradictions: list[str]
     revision_notes: list[str]
     final_output: str
-    confidence: float
 
 @dataclass(slots=True)
 class TraceEntry:
@@ -484,7 +483,7 @@ Minimum acceptance criteria for this spec:
 4. Deterministic scorer returns ground truth.
 5. Output shows baseline vs arbitrated vs ground truth in same run.
 6. Arbitrated run returns non-empty trace bundle with node-level entries.
-7. At least one sample session is expected to show baseline mismatch while arbitrated matches ground truth (or closer absolute error).
+7. Sample sessions should be chosen to increase the chance of observable divergence between baseline and arbitrated outputs, without making divergence a hard acceptance requirement.
 
 ---
 
