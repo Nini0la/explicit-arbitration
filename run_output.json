@@ -1,0 +1,9 @@
+{
+  "arbitrated_match": false,
+  "arbitrated_score": 61,
+  "baseline_match": false,
+  "baseline_score": 61,
+  "ground_truth_score": 46,
+  "session_id": "sample-deal-1",
+  "trace_entry_count": 14
+}
