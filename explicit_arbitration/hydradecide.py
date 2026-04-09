@@ -8,6 +8,7 @@ from typing import Callable
 class HydraResult:
     node_id: str
     pass_count: int
+    pass_prompts: list[str]
     pass_outputs: list[str]
     contradictions: list[str]
     revision_notes: list[str]
@@ -50,6 +51,7 @@ def run_hydra_for_node(
 ) -> HydraResult:
     """Run sequential refinement passes for one ReasonTree node."""
     pass_count = max(1, int(passes))
+    pass_prompts: list[str] = []
     pass_outputs: list[str] = []
     contradictions: list[str] = []
     revision_notes: list[str] = []
@@ -63,6 +65,7 @@ def run_hydra_for_node(
             pass_index=index + 1,
             previous_output=previous_output,
         )
+        pass_prompts.append(prompt)
         output = str(model_call(prompt))
         pass_outputs.append(output)
 
@@ -87,6 +90,7 @@ def run_hydra_for_node(
     return HydraResult(
         node_id=str(_field(node, "node_id")),
         pass_count=pass_count,
+        pass_prompts=pass_prompts,
         pass_outputs=pass_outputs,
         contradictions=contradictions,
         revision_notes=revision_notes,

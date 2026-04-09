@@ -15,6 +15,12 @@ def _field(obj: object, name: str):
     return getattr(obj, name)
 
 
+def _field_or_default(obj: object, name: str, default: object):
+    if isinstance(obj, dict):
+        return obj.get(name, default)
+    return getattr(obj, name, default)
+
+
 def run_arbitrated(
     task: object,
     model_call: Callable[[str], str],
@@ -52,14 +58,22 @@ def run_arbitrated(
         )
 
         pass_outputs = list(_field(hydra_result, "pass_outputs"))
+        pass_prompts = list(_field_or_default(hydra_result, "pass_prompts", []))
         for idx, pass_output in enumerate(pass_outputs, start=1):
+            prompt = (
+                str(pass_prompts[idx - 1]) if idx - 1 < len(pass_prompts) else ""
+            )
             record_trace(
                 trace_entries,
                 new_trace_entry(
                     run_id=run_id,
                     component="hydradecide",
                     step="hydra_pass",
-                    input_payload={"node_id": node_id, "pass_index": idx},
+                    input_payload={
+                        "node_id": node_id,
+                        "pass_index": idx,
+                        "prompt": prompt,
+                    },
                     output_payload={"pass_output": str(pass_output)},
                 ),
             )

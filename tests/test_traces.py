@@ -127,6 +127,25 @@ def test_hydra_passes_emit_trace_entries() -> None:
     assert len(hydra_entries) >= 2
 
 
+def test_hydra_pass_trace_entries_include_prompt() -> None:
+    run_arbitrated = _load_run_arbitrated()
+    task = _build_task()
+
+    _, trace_bundle = run_arbitrated(task, _stub_model_call)
+    pass_entries = [
+        entry
+        for entry in trace_bundle
+        if _field(entry, "component") == "hydradecide"
+        and _field(entry, "step") == "hydra_pass"
+    ]
+
+    assert len(pass_entries) >= 1
+    for entry in pass_entries:
+        input_payload = _field(entry, "input_payload")
+        assert "prompt" in input_payload
+        assert isinstance(input_payload["prompt"], str)
+
+
 def test_single_run_uses_single_run_id_across_entries() -> None:
     run_arbitrated = _load_run_arbitrated()
     task = _build_task()
