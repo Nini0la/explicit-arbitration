@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import asdict, dataclass, is_dataclass
+from typing import Callable
 
 from explicit_arbitration.baseline_runner import run_baseline
+from explicit_arbitration.model_client import (
+    call_openai_compatible,
+    load_live_model_config,
+)
 from explicit_arbitration.orchestrator import run_arbitrated
 from explicit_arbitration.sample_sessions import get_sample_sessions
 from explicit_arbitration.scoring_rules import compute_ground_truth_score
@@ -22,6 +28,48 @@ def _stub_model_call(_: str) -> str:
         '{"score": 61, "breakdown": {"deal_points": 20, '
         '"price_points": 21, "turn_points": 20}, "explanation": "stub"}'
     )
+
+
+def _repair_prompt_for_json(raw_output: str) -> str:
+    return (
+        "Your previous output was not valid JSON for the required schema. "
+        "Return strict JSON only with keys: score, breakdown, explanation.\n"
+        f"previous_output={raw_output}"
+    )
+
+
+def _build_model_call(
+    use_live_model: bool,
+    model: str | None = None,
+    max_tokens: int | None = None,
+    temperature: float | None = None,
+) -> tuple[Callable[[str], str], dict[str, object]]:
+    if not use_live_model:
+        return _stub_model_call, {"mode": "stub"}
+
+    config = load_live_model_config(
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+
+    def _live_model_call(prompt: str) -> str:
+        first = call_openai_compatible(prompt, config)
+        try:
+            json.loads(first)
+            return first
+        except json.JSONDecodeError:
+            repaired = call_openai_compatible(_repair_prompt_for_json(first), config)
+            return repaired
+
+    return _live_model_call, {
+        "mode": "live",
+        "provider": "openai_compatible_chat_completions",
+        "model": config.model,
+        "base_url": config.base_url,
+        "max_tokens": config.max_tokens,
+        "temperature": config.temperature,
+    }
 
 
 def _field(obj: object, name: str):
@@ -102,6 +150,15 @@ def _session_turns(session: object) -> list[dict[str, object]]:
 
 
 def run_demo() -> dict[str, object]:
+    return run_demo_with_model(use_live_model=False)
+
+
+def run_demo_with_model(
+    use_live_model: bool,
+    model: str | None = None,
+    max_tokens: int | None = None,
+    temperature: float | None = None,
+) -> dict[str, object]:
     sessions = get_sample_sessions()
     if not sessions:
         raise ValueError("sample_sessions returned no sessions")
@@ -113,16 +170,23 @@ def run_demo() -> dict[str, object]:
         session=session,
         require_explanation=True,
     )
+    model_call, model_mode = _build_model_call(
+        use_live_model=use_live_model,
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
 
     ground_truth = compute_ground_truth_score(task.session)
-    baseline = run_baseline(task, _stub_model_call)
-    arbitrated, trace_bundle = run_arbitrated(task, _stub_model_call)
+    baseline = run_baseline(task, model_call)
+    arbitrated, trace_bundle = run_arbitrated(task, model_call)
     serialized_trace = [_serialize_trace_entry(entry) for entry in trace_bundle]
     trace_summary = _build_trace_summary(trace_bundle)
 
     return {
         "session_id": session.session_id,
         "task_id": task.task_id,
+        "model_mode": model_mode,
         "ground_truth_score": ground_truth.score,
         "baseline_score": baseline.score,
         "arbitrated_score": arbitrated.score,
@@ -135,8 +199,47 @@ def run_demo() -> dict[str, object]:
     }
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run deterministic scorer, baseline, and arbitrated comparison for one "
+            "sample session."
+        )
+    )
+    parser.add_argument(
+        "--use-live-model",
+        action="store_true",
+        help="Use real OpenAI-compatible model calls instead of stub responses.",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Model name for live mode (or set MODEL_NAME env var).",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=None,
+        help="Max tokens per call for live mode.",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=None,
+        help="Sampling temperature for live mode.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
-    artifact = run_demo()
+    args = _parse_args()
+    artifact = run_demo_with_model(
+        use_live_model=bool(args.use_live_model),
+        model=args.model,
+        max_tokens=args.max_tokens,
+        temperature=args.temperature,
+    )
     print(json.dumps(artifact, sort_keys=True, indent=2))
 
 

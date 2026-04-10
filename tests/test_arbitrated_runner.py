@@ -53,3 +53,11 @@ def test_trace_entries_include_pass_prompt_and_output() -> None:
         assert "prompt" in input_payload
         assert isinstance(input_payload["prompt"], str)
         assert "pass_output" in output_payload
+
+
+def test_run_demo_defaults_to_stub_mode() -> None:
+    module = importlib.import_module("explicit_arbitration.arbitrated_runner")
+    artifact = module.run_demo()
+
+    assert "model_mode" in artifact
+    assert artifact["model_mode"]["mode"] == "stub"

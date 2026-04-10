@@ -309,3 +309,27 @@ The project is done for the ACM demo when:
 - a deterministic scorer provides ground truth
 - arbitration traces are visible
 - the system is minimal, understandable, and reproducible
+
+---
+
+## V1.1 Plan - Live Model Validation Path
+
+### Goal
+Enable optional real LLM calls so baseline and arbitrated runs can be validated beyond stubbed deterministic outputs.
+
+### Scope
+1. Add a provider-configurable `model_call` adapter for OpenAI-compatible chat-completions endpoints.
+2. Keep stub mode as default for deterministic local tests.
+3. Add CLI flags to toggle live model mode and configure model/runtime options.
+4. Add strict-JSON retry path for parse robustness.
+5. Include run metadata indicating whether stub or live mode was used.
+
+### Out of Scope
+- Full multi-provider abstraction layer.
+- Adaptive routing across providers/models.
+- Deep prompt optimization.
+
+### Done When
+- `uv run python -m explicit_arbitration.arbitrated_runner --use-live-model` can call a real model when environment variables are set.
+- Existing unit tests still pass in default (stub) mode.
+- Output artifact clearly indicates call mode and model configuration used.

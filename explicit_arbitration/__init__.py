@@ -9,4 +9,5 @@ __all__ = [
     "orchestrator",
     "baseline_runner",
     "arbitrated_runner",
+    "model_client",
 ]

@@ -1,9 +1,260 @@
 {
   "arbitrated_match": false,
   "arbitrated_score": 61,
+  "arbitration_trace_entries": [
+    {
+      "component": "reasontree",
+      "input_payload": {
+        "task_id": "task-sample-deal-1"
+      },
+      "metadata": {},
+      "output_payload": {
+        "node_count": 4,
+        "node_ids": [
+          "node-facts",
+          "node-pricing",
+          "node-turns",
+          "node-final"
+        ]
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "build_reason_tree",
+      "timestamp_utc": "2026-04-09T22:44:50.832013+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-facts",
+        "pass_index": 1,
+        "prompt": "node_id=node-facts\npurpose=Extract negotiation facts\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=1\nnode_prompt=Score this negotiation session.\nSession=sample-deal-1. Extract key negotiation facts from the turns.\nprior_node_outputs={}\nprevious_pass_output=\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832233+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-facts",
+        "pass_index": 2,
+        "prompt": "node_id=node-facts\npurpose=Extract negotiation facts\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=2\nnode_prompt=Score this negotiation session.\nSession=sample-deal-1. Extract key negotiation facts from the turns.\nprior_node_outputs={}\nprevious_pass_output={\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832238+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-facts"
+      },
+      "metadata": {
+        "pass_count": 2
+      },
+      "output_payload": {
+        "final_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "node_finalized",
+      "timestamp_utc": "2026-04-09T22:44:50.832240+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-pricing",
+        "pass_index": 1,
+        "prompt": "node_id=node-pricing\npurpose=Evaluate pricing against reference\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=1\nnode_prompt=Using extracted facts, evaluate price quality versus reference price.\nprior_node_outputs={'node-facts': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}'}\nprevious_pass_output=\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832251+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-pricing",
+        "pass_index": 2,
+        "prompt": "node_id=node-pricing\npurpose=Evaluate pricing against reference\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=2\nnode_prompt=Using extracted facts, evaluate price quality versus reference price.\nprior_node_outputs={'node-facts': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}'}\nprevious_pass_output={\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832253+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-pricing"
+      },
+      "metadata": {
+        "pass_count": 2
+      },
+      "output_payload": {
+        "final_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "node_finalized",
+      "timestamp_utc": "2026-04-09T22:44:50.832255+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-turns",
+        "pass_index": 1,
+        "prompt": "node_id=node-turns\npurpose=Evaluate turn efficiency\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=1\nnode_prompt=Using extracted facts, evaluate turn efficiency and negotiation length.\nprior_node_outputs={'node-facts': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}', 'node-pricing': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}'}\nprevious_pass_output=\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832263+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-turns",
+        "pass_index": 2,
+        "prompt": "node_id=node-turns\npurpose=Evaluate turn efficiency\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=2\nnode_prompt=Using extracted facts, evaluate turn efficiency and negotiation length.\nprior_node_outputs={'node-facts': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}', 'node-pricing': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}'}\nprevious_pass_output={\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832265+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-turns"
+      },
+      "metadata": {
+        "pass_count": 2
+      },
+      "output_payload": {
+        "final_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "node_finalized",
+      "timestamp_utc": "2026-04-09T22:44:50.832267+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-final",
+        "pass_index": 1,
+        "prompt": "node_id=node-final\npurpose=Compute final score\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=1\nnode_prompt=Compute final score JSON with fields: score, breakdown, explanation from prior node outputs.\nprior_node_outputs={'node-facts': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}', 'node-pricing': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}', 'node-turns': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}'}\nprevious_pass_output=\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832275+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-final",
+        "pass_index": 2,
+        "prompt": "node_id=node-final\npurpose=Compute final score\ntask_instruction=Score this negotiation session.\nsession_id=sample-deal-1\npass_index=2\nnode_prompt=Compute final score JSON with fields: score, breakdown, explanation from prior node outputs.\nprior_node_outputs={'node-facts': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}', 'node-pricing': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}', 'node-turns': '{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}'}\nprevious_pass_output={\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}\nReturn best output for this node."
+      },
+      "metadata": {},
+      "output_payload": {
+        "pass_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "hydra_pass",
+      "timestamp_utc": "2026-04-09T22:44:50.832276+00:00"
+    },
+    {
+      "component": "hydradecide",
+      "input_payload": {
+        "node_id": "node-final"
+      },
+      "metadata": {
+        "pass_count": 2
+      },
+      "output_payload": {
+        "final_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}"
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "node_finalized",
+      "timestamp_utc": "2026-04-09T22:44:50.832278+00:00"
+    },
+    {
+      "component": "orchestrator",
+      "input_payload": {
+        "task_id": "task-sample-deal-1"
+      },
+      "metadata": {},
+      "output_payload": {
+        "breakdown": {
+          "deal_points": 20,
+          "price_points": 21,
+          "turn_points": 20
+        },
+        "score": 61
+      },
+      "run_id": "run-370ce09b034349628e843916ccd61eee",
+      "step": "run_complete",
+      "timestamp_utc": "2026-04-09T22:44:50.832288+00:00"
+    }
+  ],
+  "arbitration_trace_summary": {
+    "final_node_output": "{\"score\": 61, \"breakdown\": {\"deal_points\": 20, \"price_points\": 21, \"turn_points\": 20}, \"explanation\": \"stub\"}",
+    "hydra_pass_count": 8,
+    "reason_tree_node_count": 4,
+    "reason_tree_node_sequence": [
+      "node-facts",
+      "node-pricing",
+      "node-turns",
+      "node-final"
+    ]
+  },
   "baseline_match": false,
   "baseline_score": 61,
   "ground_truth_score": 46,
   "session_id": "sample-deal-1",
+  "session_turns": [
+    {
+      "message": "Can you do 125?",
+      "offer_price": 125.0,
+      "speaker": "buyer",
+      "turn_index": 0
+    },
+    {
+      "message": "I can do 138.",
+      "offer_price": 138.0,
+      "speaker": "seller",
+      "turn_index": 1
+    },
+    {
+      "message": "Deal at 130.",
+      "offer_price": 130.0,
+      "speaker": "buyer",
+      "turn_index": 2
+    }
+  ],
+  "task_id": "task-sample-deal-1",
   "trace_entry_count": 14
 }
