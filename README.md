@@ -44,3 +44,18 @@ uv run python -m explicit_arbitration.arbitrated_runner \
 - Default mode is stubbed for deterministic tests.
 - Live mode uses an OpenAI-compatible Chat Completions endpoint.
 - Output artifact includes `model_mode` so you can verify whether the run used stub or live calls.
+
+## Streamlit Frontend
+
+Launch the lightweight UI without changing project dependencies:
+
+```bash
+uv run --with streamlit streamlit run app.py
+```
+
+In the UI, choose:
+- sample session
+- stub vs live model mode
+- model/max-tokens/temperature (live mode settings)
+
+Then click `Run Comparison` to inspect scores and full arbitration traces.

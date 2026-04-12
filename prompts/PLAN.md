@@ -333,3 +333,20 @@ Enable optional real LLM calls so baseline and arbitrated runs can be validated 
 - `uv run python -m explicit_arbitration.arbitrated_runner --use-live-model` can call a real model when environment variables are set.
 - Existing unit tests still pass in default (stub) mode.
 - Output artifact clearly indicates call mode and model configuration used.
+
+---
+
+## V1.2 Plan - Streamlit Demo Surface
+
+### Goal
+Add a lightweight Streamlit frontend to inspect one run interactively without replacing the terminal-first workflow.
+
+### Scope
+1. Add `app.py` with sample session selector and run trigger.
+2. Support stub and live model modes with runtime controls.
+3. Render score comparison, session turns, trace summary, and per-step trace entries.
+4. Provide a raw JSON panel for copy/paste debugging.
+
+### Done When
+- `uv run --with streamlit streamlit run app.py` launches a working UI.
+- Existing backend tests remain green.
