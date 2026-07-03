@@ -5,45 +5,43 @@ Minimal arbitration demo for negotiation scoring with:
 - baseline single-pass scoring
 - ReasonTree + HydraDecide arbitrated scoring
 - trace emission for transparency
+- mandatory live LLM calls for product-facing runs
 
-## Run (Stub Mode, Deterministic)
+## Configure Model Access
 
-```bash
-uv run python -m explicit_arbitration.arbitrated_runner > run_output.json
-```
-
-## Run (Live Model Mode)
-
-Set credentials/config:
+DeepSeek is supported through its OpenAI-compatible endpoint:
 
 ```bash
-export OPENAI_API_KEY="..."
-# optional:
-export OPENAI_BASE_URL="https://api.openai.com/v1"
-export MODEL_NAME="gpt-4.1-mini"
+export DEEPSEEK_API_KEY="..."
+export MODEL_NAME="deepseek-v4-flash"
 ```
 
-Run:
+You can also use any OpenAI-compatible provider:
 
 ```bash
-uv run python -m explicit_arbitration.arbitrated_runner --use-live-model > run_output.json
+export ARBITRATION_API_KEY="..."
+export ARBITRATION_BASE_URL="https://api.deepseek.com"
+export MODEL_NAME="deepseek-v4-flash"
 ```
 
-Optional runtime overrides:
+`OPENAI_API_KEY` and `OPENAI_BASE_URL` are also accepted for OpenAI-compatible
+providers.
+
+## Run
 
 ```bash
 uv run python -m explicit_arbitration.arbitrated_runner \
-  --use-live-model \
-  --model gpt-4.1-mini \
+  --model deepseek-v4-flash \
   --max-tokens 300 \
-  --temperature 0
+  --temperature 0 \
+  > run_output.json
 ```
 
 ## Notes
 
-- Default mode is stubbed for deterministic tests.
-- Live mode uses an OpenAI-compatible Chat Completions endpoint.
-- Output artifact includes `model_mode` so you can verify whether the run used stub or live calls.
+- Runtime mode requires a configured API key and calls an OpenAI-compatible Chat Completions endpoint.
+- Unit tests use injected fake model calls for deterministic verification.
+- Output artifact includes `model_mode` so you can verify the endpoint and model used.
 
 ## Streamlit Frontend
 
@@ -55,7 +53,7 @@ uv run --with streamlit streamlit run app.py
 
 In the UI, choose:
 - sample session
-- stub vs live model mode
-- model/max-tokens/temperature (live mode settings)
+- model/max-tokens/temperature
 
 Then click `Run Comparison` to inspect scores and full arbitration traces.
+The UI also shows a live event stream (node/pass lifecycle + progress) while arbitration runs.

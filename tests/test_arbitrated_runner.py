@@ -9,9 +9,23 @@ def _field(obj: object, name: str):
     return getattr(obj, name)
 
 
-def test_run_demo_includes_transparency_sections() -> None:
+def _stub_model_call(_: str) -> str:
+    return (
+        '{"score": 61, "breakdown": {"deal_points": 20, '
+        '"price_points": 21, "turn_points": 20}, "explanation": "stub"}'
+    )
+
+
+def _run_demo_with_stub() -> dict[str, object]:
     module = importlib.import_module("explicit_arbitration.arbitrated_runner")
-    artifact = module.run_demo()
+    return module.run_demo_with_model_call(
+        model_call=_stub_model_call,
+        model_mode={"mode": "injected_test_double"},
+    )
+
+
+def test_run_demo_includes_transparency_sections() -> None:
+    artifact = _run_demo_with_stub()
 
     assert "session_turns" in artifact
     assert "arbitration_trace_summary" in artifact
@@ -23,8 +37,7 @@ def test_run_demo_includes_transparency_sections() -> None:
 
 
 def test_trace_summary_matches_entry_count() -> None:
-    module = importlib.import_module("explicit_arbitration.arbitrated_runner")
-    artifact = module.run_demo()
+    artifact = _run_demo_with_stub()
 
     assert artifact["trace_entry_count"] == len(artifact["arbitration_trace_entries"])
 
@@ -35,8 +48,7 @@ def test_trace_summary_matches_entry_count() -> None:
 
 
 def test_trace_entries_include_pass_prompt_and_output() -> None:
-    module = importlib.import_module("explicit_arbitration.arbitrated_runner")
-    artifact = module.run_demo()
+    artifact = _run_demo_with_stub()
     entries = artifact["arbitration_trace_entries"]
 
     hydra_pass_entries = [
@@ -55,9 +67,24 @@ def test_trace_entries_include_pass_prompt_and_output() -> None:
         assert "pass_output" in output_payload
 
 
-def test_run_demo_defaults_to_stub_mode() -> None:
-    module = importlib.import_module("explicit_arbitration.arbitrated_runner")
-    artifact = module.run_demo()
+def test_run_demo_uses_injected_test_double_for_deterministic_tests() -> None:
+    artifact = _run_demo_with_stub()
 
     assert "model_mode" in artifact
-    assert artifact["model_mode"]["mode"] == "stub"
+    assert artifact["model_mode"]["mode"] == "injected_test_double"
+
+
+def test_run_demo_requires_live_model_configuration(
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("explicit_arbitration.arbitrated_runner")
+    monkeypatch.delenv("ARBITRATION_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    try:
+        module.run_demo()
+    except ValueError as exc:
+        assert "API key is required" in str(exc)
+        return
+    raise AssertionError("run_demo should require live model configuration")

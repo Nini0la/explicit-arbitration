@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import Callable
 
@@ -23,13 +24,6 @@ class TaskInput:
     require_explanation: bool = True
 
 
-def _stub_model_call(_: str) -> str:
-    return (
-        '{"score": 61, "breakdown": {"deal_points": 20, '
-        '"price_points": 21, "turn_points": 20}, "explanation": "stub"}'
-    )
-
-
 def _repair_prompt_for_json(raw_output: str) -> str:
     return (
         "Your previous output was not valid JSON for the required schema. "
@@ -39,14 +33,10 @@ def _repair_prompt_for_json(raw_output: str) -> str:
 
 
 def _build_model_call(
-    use_live_model: bool,
     model: str | None = None,
     max_tokens: int | None = None,
     temperature: float | None = None,
 ) -> tuple[Callable[[str], str], dict[str, object]]:
-    if not use_live_model:
-        return _stub_model_call, {"mode": "stub"}
-
     config = load_live_model_config(
         model=model,
         max_tokens=max_tokens,
@@ -67,6 +57,7 @@ def _build_model_call(
         "provider": "openai_compatible_chat_completions",
         "model": config.model,
         "base_url": config.base_url,
+        "api_key_source": config.api_key_source,
         "max_tokens": config.max_tokens,
         "temperature": config.temperature,
     }
@@ -76,6 +67,16 @@ def _field(obj: object, name: str):
     if isinstance(obj, dict):
         return obj[name]
     return getattr(obj, name)
+
+
+def _emit_event(
+    on_event: Callable[[dict[str, object]], None] | None,
+    event_type: str,
+    payload: dict[str, object],
+) -> None:
+    if on_event is None:
+        return
+    on_event({"event_type": event_type, **payload})
 
 
 def _to_primitive(value: object) -> object:
@@ -150,14 +151,32 @@ def _session_turns(session: object) -> list[dict[str, object]]:
 
 
 def run_demo() -> dict[str, object]:
-    return run_demo_with_model(use_live_model=False)
+    return run_demo_with_model()
 
 
 def run_demo_with_model(
-    use_live_model: bool,
     model: str | None = None,
     max_tokens: int | None = None,
     temperature: float | None = None,
+    on_event: Callable[[dict[str, object]], None] | None = None,
+) -> dict[str, object]:
+    model_call, model_mode = _build_model_call(
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    _emit_event(on_event, "model_configured", model_mode)
+    return run_demo_with_model_call(
+        model_call=model_call,
+        model_mode=model_mode,
+        on_event=on_event,
+    )
+
+
+def run_demo_with_model_call(
+    model_call: Callable[[str], str],
+    model_mode: dict[str, object] | None = None,
+    on_event: Callable[[dict[str, object]], None] | None = None,
 ) -> dict[str, object]:
     sessions = get_sample_sessions()
     if not sessions:
@@ -170,23 +189,37 @@ def run_demo_with_model(
         session=session,
         require_explanation=True,
     )
-    model_call, model_mode = _build_model_call(
-        use_live_model=use_live_model,
-        model=model,
-        max_tokens=max_tokens,
-        temperature=temperature,
+
+    _emit_event(on_event, "ground_truth_started", {"task_id": task.task_id})
+    ground_truth = compute_ground_truth_score(task.session)
+    _emit_event(
+        on_event,
+        "ground_truth_completed",
+        {"task_id": task.task_id, "score": ground_truth.score},
     )
 
-    ground_truth = compute_ground_truth_score(task.session)
+    _emit_event(on_event, "baseline_started", {"task_id": task.task_id})
     baseline = run_baseline(task, model_call)
-    arbitrated, trace_bundle = run_arbitrated(task, model_call)
+    _emit_event(
+        on_event,
+        "baseline_completed",
+        {"task_id": task.task_id, "score": baseline.score},
+    )
+
+    _emit_event(on_event, "arbitration_started", {"task_id": task.task_id})
+    arbitrated, trace_bundle = run_arbitrated(task, model_call, on_event=on_event)
+    _emit_event(
+        on_event,
+        "arbitration_completed",
+        {"task_id": task.task_id, "score": arbitrated.score},
+    )
     serialized_trace = [_serialize_trace_entry(entry) for entry in trace_bundle]
     trace_summary = _build_trace_summary(trace_bundle)
 
     return {
         "session_id": session.session_id,
         "task_id": task.task_id,
-        "model_mode": model_mode,
+        "model_mode": model_mode or {"mode": "injected_test_double"},
         "ground_truth_score": ground_truth.score,
         "baseline_score": baseline.score,
         "arbitrated_score": arbitrated.score,
@@ -202,44 +235,86 @@ def run_demo_with_model(
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Run deterministic scorer, baseline, and arbitrated comparison for one "
-            "sample session."
+            "Run deterministic scorer, baseline, and live-model arbitrated "
+            "comparison for one sample session."
         )
-    )
-    parser.add_argument(
-        "--use-live-model",
-        action="store_true",
-        help="Use real OpenAI-compatible model calls instead of stub responses.",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name for live mode (or set MODEL_NAME env var).",
+        help="Model name (or set MODEL_NAME env var).",
     )
     parser.add_argument(
         "--max-tokens",
         type=int,
         default=None,
-        help="Max tokens per call for live mode.",
+        help="Max tokens per call.",
     )
     parser.add_argument(
         "--temperature",
         type=float,
         default=None,
-        help="Sampling temperature for live mode.",
+        help="Sampling temperature.",
     )
     return parser.parse_args()
 
 
+def _print_cli_event(event: dict[str, object]) -> None:
+    event_type = str(event.get("event_type", ""))
+    if event_type == "model_configured":
+        message = (
+            "[model] "
+            f"{event.get('model')} via {event.get('base_url')} "
+            f"({event.get('api_key_source')})"
+        )
+    elif event_type == "ground_truth_started":
+        message = "[ground-truth] computing deterministic score"
+    elif event_type == "ground_truth_completed":
+        message = f"[ground-truth] score={event.get('score')}"
+    elif event_type == "baseline_started":
+        message = "[baseline] requesting single-pass model score"
+    elif event_type == "baseline_completed":
+        message = f"[baseline] score={event.get('score')}"
+    elif event_type == "arbitration_started":
+        message = "[arbitration] starting ReasonTree + HydraDecide"
+    elif event_type == "reasontree_built":
+        node_ids = ", ".join(str(node) for node in event.get("node_ids", []))
+        message = f"[reasontree] built {event.get('node_count')} nodes: {node_ids}"
+    elif event_type == "node_started":
+        message = f"[hydradecide] node {event.get('node_id')} started"
+    elif event_type == "pass_started":
+        message = (
+            "[hydradecide] "
+            f"{event.get('node_id')} pass {event.get('pass_index')} started"
+        )
+    elif event_type == "pass_completed":
+        message = (
+            "[hydradecide] "
+            f"{event.get('node_id')} pass {event.get('pass_index')} completed"
+        )
+    elif event_type == "node_finalized":
+        message = f"[hydradecide] node {event.get('node_id')} finalized"
+    elif event_type == "run_completed":
+        message = f"[orchestrator] final score={event.get('score')}"
+    elif event_type == "arbitration_completed":
+        message = f"[arbitration] completed score={event.get('score')}"
+    else:
+        return
+    print(message, file=sys.stderr, flush=True)
+
+
 def main() -> None:
     args = _parse_args()
-    artifact = run_demo_with_model(
-        use_live_model=bool(args.use_live_model),
-        model=args.model,
-        max_tokens=args.max_tokens,
-        temperature=args.temperature,
-    )
+    try:
+        artifact = run_demo_with_model(
+            model=args.model,
+            max_tokens=args.max_tokens,
+            temperature=args.temperature,
+            on_event=_print_cli_event,
+        )
+    except ValueError as exc:
+        raise SystemExit(f"error: {exc}") from None
     print(json.dumps(artifact, sort_keys=True, indent=2))
 
 

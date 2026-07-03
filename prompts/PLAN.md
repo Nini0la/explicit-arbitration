@@ -312,17 +312,20 @@ The project is done for the ACM demo when:
 
 ---
 
-## V1.1 Plan - Live Model Validation Path
+## V1.1 Plan - Mandatory Live Model Path
 
 ### Goal
-Enable optional real LLM calls so baseline and arbitrated runs can be validated beyond stubbed deterministic outputs.
+Require real OpenAI-compatible LLM calls for product-facing baseline and arbitrated runs.
+Tests may still inject fake model calls for deterministic verification, but the terminal
+and UI demo paths should fail fast when no API key is configured.
 
 ### Scope
 1. Add a provider-configurable `model_call` adapter for OpenAI-compatible chat-completions endpoints.
-2. Keep stub mode as default for deterministic local tests.
-3. Add CLI flags to toggle live model mode and configure model/runtime options.
+2. Support DeepSeek via OpenAI-compatible configuration.
+3. Keep stubs only as injected test doubles, not as normal runtime mode.
+4. Add CLI flags to configure model/runtime options.
 4. Add strict-JSON retry path for parse robustness.
-5. Include run metadata indicating whether stub or live mode was used.
+5. Include run metadata indicating provider endpoint and model configuration used.
 
 ### Out of Scope
 - Full multi-provider abstraction layer.
@@ -330,8 +333,9 @@ Enable optional real LLM calls so baseline and arbitrated runs can be validated 
 - Deep prompt optimization.
 
 ### Done When
-- `uv run python -m explicit_arbitration.arbitrated_runner --use-live-model` can call a real model when environment variables are set.
-- Existing unit tests still pass in default (stub) mode.
+- `uv run python -m explicit_arbitration.arbitrated_runner` calls a real model when environment variables are set.
+- The command fails clearly when no supported API key is configured.
+- Existing unit tests still pass with injected fake model calls.
 - Output artifact clearly indicates call mode and model configuration used.
 
 ---
@@ -343,7 +347,7 @@ Add a lightweight Streamlit frontend to inspect one run interactively without re
 
 ### Scope
 1. Add `app.py` with sample session selector and run trigger.
-2. Support stub and live model modes with runtime controls.
+2. Support live model runtime controls.
 3. Render score comparison, session turns, trace summary, and per-step trace entries.
 4. Provide a raw JSON panel for copy/paste debugging.
 

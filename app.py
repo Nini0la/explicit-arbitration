@@ -30,13 +30,6 @@ def _field(obj: object, name: str):
     return getattr(obj, name)
 
 
-def _stub_model_call(_: str) -> str:
-    return (
-        '{"score": 61, "breakdown": {"deal_points": 20, '
-        '"price_points": 21, "turn_points": 20}, "explanation": "stub"}'
-    )
-
-
 def _repair_prompt_for_json(raw_output: str) -> str:
     return (
         "Your previous output was not valid JSON for the required schema. "
@@ -46,14 +39,10 @@ def _repair_prompt_for_json(raw_output: str) -> str:
 
 
 def _build_model_call(
-    use_live_model: bool,
     model: str | None = None,
     max_tokens: int = 300,
     temperature: float = 0.0,
 ) -> tuple[Callable[[str], str], dict[str, object]]:
-    if not use_live_model:
-        return _stub_model_call, {"mode": "stub"}
-
     config = load_live_model_config(
         model=model,
         max_tokens=max_tokens,
@@ -74,6 +63,7 @@ def _build_model_call(
         "provider": "openai_compatible_chat_completions",
         "model": config.model,
         "base_url": config.base_url,
+        "api_key_source": config.api_key_source,
         "max_tokens": config.max_tokens,
         "temperature": config.temperature,
     }
@@ -152,10 +142,10 @@ def _session_turns(session: object) -> list[dict[str, object]]:
 
 def _run_for_session(
     session: object,
-    use_live_model: bool,
     model: str | None = None,
     max_tokens: int = 300,
     temperature: float = 0.0,
+    on_event: Callable[[dict[str, object]], None] | None = None,
 ) -> dict[str, object]:
     task = TaskInput(
         task_id=f"task-{_field(session, 'session_id')}",
@@ -164,14 +154,13 @@ def _run_for_session(
         require_explanation=True,
     )
     model_call, model_mode = _build_model_call(
-        use_live_model=use_live_model,
         model=model,
         max_tokens=max_tokens,
         temperature=temperature,
     )
     ground_truth = compute_ground_truth_score(task.session)
     baseline = run_baseline(task, model_call)
-    arbitrated, trace_bundle = run_arbitrated(task, model_call)
+    arbitrated, trace_bundle = run_arbitrated(task, model_call, on_event=on_event)
     serialized_trace = [_serialize_trace_entry(entry) for entry in trace_bundle]
     trace_summary = _build_trace_summary(trace_bundle)
 
@@ -251,8 +240,7 @@ def main() -> None:
             "Session",
             options=list(session_map.keys()),
         )
-        use_live_model = st.toggle("Use Live Model", value=False)
-        model_name = st.text_input("Model", value="gpt-4.1-mini")
+        model_name = st.text_input("Model", value="deepseek-v4-flash")
         max_tokens = st.number_input(
             "Max Tokens / Call",
             min_value=50,
@@ -275,17 +263,72 @@ def main() -> None:
 
     if run_clicked:
         session = session_map[selected_session_id]
+        live_status = st.empty()
+        live_progress = st.progress(0)
+        live_table = st.empty()
+        live_events: list[dict[str, object]] = []
+        progress_state = {
+            "expected_passes": 0,
+            "completed_passes": 0,
+            "current": "Waiting to start...",
+        }
+
+        def _on_event(event: dict[str, object]) -> None:
+            live_events.append(event)
+            event_type = str(event.get("event_type", ""))
+            node_id = str(event.get("node_id", ""))
+            pass_index = event.get("pass_index", "")
+
+            if event_type == "reasontree_built":
+                node_count = int(event.get("node_count", 0))
+                progress_state["expected_passes"] = max(1, node_count * 2)
+                progress_state["current"] = f"ReasonTree built with {node_count} nodes."
+            elif event_type == "node_started":
+                progress_state["current"] = f"Running {node_id}..."
+            elif event_type == "pass_started":
+                progress_state["current"] = f"{node_id} pass {pass_index} started."
+            elif event_type == "pass_completed":
+                progress_state["completed_passes"] += 1
+                progress_state["current"] = f"{node_id} pass {pass_index} completed."
+            elif event_type == "run_completed":
+                progress_state["current"] = "Run completed."
+
+            expected_passes = max(1, int(progress_state["expected_passes"] or 1))
+            completed_passes = int(progress_state["completed_passes"])
+            progress_value = min(100, int((completed_passes / expected_passes) * 100))
+
+            live_status.info(
+                f"Live arbitration status: {progress_state['current']} "
+                f"({completed_passes}/{expected_passes} passes)"
+            )
+            live_progress.progress(progress_value)
+
+            recent = live_events[-8:]
+            table_rows = [
+                {
+                    "timestamp_utc": str(item.get("timestamp_utc", "")),
+                    "event": str(item.get("event_type", "")),
+                    "node_id": str(item.get("node_id", "")),
+                    "pass_index": str(item.get("pass_index", "")),
+                }
+                for item in recent
+            ]
+            live_table.dataframe(table_rows, use_container_width=True, hide_index=True)
+
         try:
             artifact = _run_for_session(
                 session=session,
-                use_live_model=use_live_model,
                 model=model_name,
                 max_tokens=int(max_tokens),
                 temperature=float(temperature),
+                on_event=_on_event,
             )
         except Exception as exc:
             st.error(f"Run failed: {exc}")
             return
+        artifact["arbitration_live_events"] = live_events
+        live_progress.progress(100)
+        live_status.success("Live arbitration stream finished.")
 
         st.subheader("Scores")
         c1, c2, c3 = st.columns(3)

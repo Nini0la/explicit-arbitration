@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+import certifi
 
 
 @dataclass(slots=True)
@@ -16,6 +19,44 @@ class LiveModelConfig:
     timeout_s: float = 60.0
     max_tokens: int = 300
     temperature: float = 0.0
+    api_key_source: str = "OPENAI_API_KEY"
+
+
+def _resolve_api_key() -> tuple[str, str]:
+    candidates = (
+        "ARBITRATION_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "OPENAI_API_KEY",
+    )
+    for name in candidates:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value, name
+    raise ValueError(
+        "A live model API key is required. Set ARBITRATION_API_KEY, "
+        "DEEPSEEK_API_KEY, or OPENAI_API_KEY."
+    )
+
+
+def _default_base_url(api_key_source: str) -> str:
+    configured = (
+        os.getenv("ARBITRATION_BASE_URL", "").strip()
+        or os.getenv("OPENAI_BASE_URL", "").strip()
+    )
+    if configured:
+        return configured
+    if api_key_source == "DEEPSEEK_API_KEY":
+        return "https://api.deepseek.com"
+    return "https://api.openai.com/v1"
+
+
+def _default_model(base_url: str) -> str:
+    configured = os.getenv("MODEL_NAME", "").strip()
+    if configured:
+        return configured
+    if "deepseek.com" in base_url:
+        return "deepseek-v4-flash"
+    return "gpt-4.1-mini"
 
 
 def load_live_model_config(
@@ -23,13 +64,10 @@ def load_live_model_config(
     max_tokens: int | None = None,
     temperature: float | None = None,
 ) -> LiveModelConfig:
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY is required for live model mode")
-
-    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
+    api_key, api_key_source = _resolve_api_key()
+    base_url = _default_base_url(api_key_source)
     timeout_s = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "60").strip() or "60")
-    resolved_model = model or os.getenv("MODEL_NAME", "gpt-4.1-mini")
+    resolved_model = model or _default_model(base_url)
     resolved_max_tokens = int(
         max_tokens if max_tokens is not None else os.getenv("MAX_TOKENS", "300")
     )
@@ -46,6 +84,7 @@ def load_live_model_config(
         timeout_s=timeout_s,
         max_tokens=resolved_max_tokens,
         temperature=resolved_temperature,
+        api_key_source=api_key_source,
     )
 
 
@@ -106,8 +145,14 @@ def call_openai_compatible(prompt: str, config: LiveModelConfig) -> str:
         method="POST",
     )
 
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+
     try:
-        with urlopen(request, timeout=config.timeout_s) as response:
+        with urlopen(
+            request,
+            timeout=config.timeout_s,
+            context=ssl_context,
+        ) as response:
             raw = response.read().decode("utf-8")
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")

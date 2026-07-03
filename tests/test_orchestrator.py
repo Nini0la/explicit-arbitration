@@ -266,3 +266,33 @@ def test_run_arbitrated_raises_or_returns_error_on_unparseable_final_output(
             "parse_error",
         )
     assert error_observable
+
+
+def test_run_arbitrated_emits_lifecycle_events(
+    sample_task: TaskInput,
+) -> None:
+    module = _load_orchestrator_module()
+    run_arbitrated = module.run_arbitrated
+    events: list[dict[str, object]] = []
+
+    def model_call(_: str) -> str:
+        return (
+            '{"score": 61, "breakdown": {"deal_points": 20, '
+            '"price_points": 21, "turn_points": 20}, "explanation": "ok"}'
+        )
+
+    score_result, _ = run_arbitrated(
+        sample_task,
+        model_call,
+        on_event=events.append,
+    )
+
+    assert _field(score_result, "score") == 61
+    event_types = [str(event.get("event_type")) for event in events]
+    assert "run_started" in event_types
+    assert "reasontree_built" in event_types
+    assert "node_started" in event_types
+    assert "pass_started" in event_types
+    assert "pass_completed" in event_types
+    assert "node_finalized" in event_types
+    assert "run_completed" in event_types
